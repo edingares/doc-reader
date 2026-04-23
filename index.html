@@ -1,491 +1,171 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>DocReader - 文档阅读器</title>
-    <!-- Tailwind CSS v3 -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Font Awesome -->
-    <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
-    <!-- PDF.js -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js"></script>
-    <!-- Mammoth.js for Word documents -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.4.26/mammoth.browser.min.js"></script>
-    
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    colors: {
-                        primary: '#3B82F6',
-                        secondary: '#60A5FA',
-                        accent: '#1E40AF',
-                        light: '#EFF6FF',
-                        dark: '#1E3A8A'
-                    },
-                    fontFamily: {
-                        sans: ['Inter', 'system-ui', 'sans-serif'],
-                    }
-                }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DocReader - 文档阅读器</title>
+<!-- Tailwind CSS v3 -->
+<script src="https://cdn.tailwindcss.com"></script>
+<!-- Font Awesome -->
+<link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+<!-- PDF.js -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js"></script>
+<!-- Mammoth.js for Word documents -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
+
+<script>
+tailwind.config = {
+    theme: {
+        extend: {
+            colors: {
+                primary: '#3B82F6',
+                secondary: '#6366F1',
+                dark: '#1E293B',
+                light: '#F8FAFC'
             }
         }
-    </script>
-    
-    <style type="text/tailwindcss">
-        @layer utilities {
-            .text-shadow {
-                text-shadow: 0 2px 4px rgba(0,0,0,0.1);
-            }
-            .transition-height {
-                transition: height 0.3s ease;
-            }
-            .bg-gradient-blue {
-                background: linear-gradient(135deg, #3B82F6 0%, #60A5FA 100%);
-            }
-            .border-dashed-blue {
-                border: 2px dashed #3B82F6;
-            }
-            .border-dashed-blue-hover {
-                border: 2px dashed #60A5FA;
-            }
-        }
-        
-        /* 自定义动画 */
-        @keyframes float {
-            0% { transform: translateY(0px); }
-            50% { transform: translateY(-10px); }
-            100% { transform: translateY(0px); }
-        }
-        
-        .float-animation {
-            animation: float 3s ease-in-out infinite;
-        }
-    </style>
+    }
+}
+</script>
+
+<style type="text/tailwindcss">
+@layer utilities {
+    .content-auto { content-visibility: auto; }
+    .card-shadow { box-shadow: 0 10px 25px -5px rgba(59, 130, 246, 0.1); }
+}
+</style>
 </head>
-<body class="bg-gray-50 font-sans">
-    <!-- 导航栏 -->
-    <nav class="bg-gradient-blue text-white shadow-md">
-        <div class="container mx-auto px-4 py-3 flex justify-between items-center">
-            <div class="flex items-center space-x-2">
-                <i class="fa fa-file-text-o text-2xl"></i>
-                <span class="text-xl font-bold">DocReader</span>
-            </div>
-            <div class="hidden md:flex space-x-6">
-                <a href="#" class="hover:text-light transition-colors duration-200 font-medium">首页</a>
-                <a href="#" class="hover:text-light transition-colors duration-200">关于</a>
-            </div>
+<body class="bg-gray-50 min-h-screen font-sans text-dark">
+<!-- 顶部导航 -->
+<header class="bg-white shadow-sm sticky top-0 z-10">
+    <div class="container mx-auto px-4 py-4 flex justify-between items-center">
+        <div class="flex items-center gap-2">
+            <i class="fa fa-file-text-o text-primary text-2xl"></i>
+            <h1 class="text-xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">文档阅读器 DocReader</h1>
         </div>
-    </nav>
+    </div>
+</header>
 
-    <!-- 主内容区 -->
-    <main class="container mx-auto px-4 py-8">
-        <!-- 欢迎区域 -->
-        <section id="welcome-section" class="mb-12">
-            <div class="flex flex-col md:flex-row items-center justify-between">
-                <div class="md:w-1/2 mb-6 md:mb-0">
-                    <h1 class="text-4xl md:text-5xl font-bold text-gray-800 mb-4">
-                        智能<span class="text-primary">文档阅读器</span>
-                    </h1>
-                    <p class="text-lg text-gray-600 mb-6">
-                        上传您的文档，实时解析并展示内容，支持PDF、Word和TXT格式。
-                    </p>
-                    <button id="get-started-btn" class="bg-primary hover:bg-accent text-white px-6 py-3 rounded-lg shadow-lg transition-all duration-300 transform hover:-translate-y-1">
-                        开始使用
-                    </button>
-                </div>
-                <div class="md:w-1/2 flex justify-center">
-                    <img src="https://p11-flow-imagex-sign.byteimg.com/tos-cn-i-a9rns2rl98/rc/pc/super_tool/c921aeb1a27c4a12bed80c0ba0b6ba92~tplv-a9rns2rl98-image.image?lk3s=8e244e95&rcl=20260423082455395D4C5411505B7DAB7A&rrcfp=f06b921b&x-expires=1779495974&x-signature=h44a6Sv32%2FpjbJ%2BlHayIAVCrFsc%3D" 
-                         alt="文档分析界面" 
-                         class="rounded-lg shadow-xl max-w-full h-auto float-animation">
-                </div>
-            </div>
-        </section>
-
-        <!-- 文档上传区域 -->
-        <section id="upload-section" class="hidden mb-12">
-            <div class="bg-white rounded-xl shadow-lg p-8 max-w-4xl mx-auto">
-                <h2 class="text-2xl font-bold text-center text-gray-800 mb-6">上传您的文档</h2>
-                
-                <div id="drop-area" class="border-dashed-blue rounded-lg p-8 text-center cursor-pointer hover:bg-blue-50 transition-all duration-300">
-                    <div class="flex flex-col items-center justify-center">
-                        <i class="fa fa-cloud-upload text-5xl text-primary mb-4 opacity-70"></i>
-                        <h3 class="text-xl font-medium text-gray-700 mb-2">拖放文件到此处</h3>
-                        <p class="text-gray-500 mb-4">或者</p>
-                        <label class="bg-primary hover:bg-accent text-white px-6 py-2 rounded-lg cursor-pointer transition-colors duration-300">
-                            选择文件
-                            <input type="file" id="file-input" class="hidden" accept=".pdf,.docx,.txt">
-                        </label>
-                        <p class="text-sm text-gray-500 mt-4">支持 PDF、Word、TXT 格式</p>
-                    </div>
-                </div>
-                
-                <!-- 上传进度区域 -->
-                <div id="upload-progress" class="hidden mt-6">
-                    <div class="flex justify-between items-center mb-2">
-                        <span id="file-name" class="text-sm font-medium text-gray-700">document.pdf</span>
-                        <span id="upload-percentage" class="text-sm font-medium text-primary">0%</span>
-                    </div>
-                    <div class="w-full bg-gray-200 rounded-full h-2.5">
-                        <div id="progress-bar" class="bg-primary h-2.5 rounded-full" style="width: 0%"></div>
-                    </div>
-                </div>
-            </div>
-        </section>
-
-        <!-- 结果展示区域 -->
-        <section id="result-section" class="hidden">
-            <div class="max-w-6xl mx-auto">
-                <!-- 结果标题 -->
-                <div class="bg-white rounded-t-xl shadow-lg p-6 border-b">
-                    <div class="flex justify-between items-center">
-                        <h2 class="text-2xl font-bold text-gray-800" id="result-title">文档内容</h2>
-                        <div class="flex space-x-3">
-                            <button id="new-analysis-btn" class="flex items-center space-x-1 border border-gray-300 hover:bg-gray-100 text-gray-700 px-4 py-2 rounded-lg transition-colors duration-300">
-                                <i class="fa fa-plus"></i>
-                                <span>上传新文档</span>
-                            </button>
-                        </div>
-                    </div>
-                </div>
-                
-                <!-- 结果内容 -->
-                <div class="bg-white rounded-b-xl shadow-lg p-6">
-                    <!-- 文档信息 -->
-                    <div class="bg-blue-50 border-l-4 border-primary p-4 mb-6 rounded">
-                        <h3 class="font-bold text-lg text-gray-800 mb-2">文档信息</h3>
-                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                            <div>
-                                <span class="text-gray-600">文件名：</span>
-                                <span class="font-medium" id="document-name">document.pdf</span>
-                            </div>
-                            <div>
-                                <span class="text-gray-600">文件大小：</span>
-                                <span class="font-medium" id="document-size">1.2 MB</span>
-                            </div>
-                            <div>
-                                <span class="text-gray-600">文件类型：</span>
-                                <span class="font-medium" id="document-type">PDF</span>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <!-- 文档内容 -->
-                    <div class="mb-6">
-                        <h3 class="font-bold text-xl text-gray-800 mb-3">文档正文</h3>
-                        <div id="document-content" class="bg-gray-50 p-6 rounded-lg border border-gray-200 min-h-[400px] whitespace-pre-wrap">
-                            <!-- 文档内容将在这里显示 -->
-                        </div>
-                    </div>
-                    
-                    <!-- 解析状态 -->
-                    <div id="parse-status" class="hidden bg-yellow-50 p-4 rounded-lg border border-yellow-200">
-                        <div class="flex items-center">
-                            <i class="fa fa-spinner fa-spin text-yellow-600 mr-3"></i>
-                            <span id="status-message">正在解析文档...</span>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </section>
-    </main>
-
-    <!-- 页脚 -->
-    <footer class="bg-gray-800 text-white py-6 mt-12">
-        <div class="container mx-auto px-4 text-center">
-            <p>&copy; 2026 DocReader. 保留所有权利。</p>
+<main class="container mx-auto px-4 py-8 max-w-4xl">
+    <!-- 上传区域 -->
+    <div class="bg-white rounded-xl card-shadow p-8 mb-8">
+        <div class="text-center mb-6">
+            <i class="fa fa-cloud-upload text-primary text-5xl mb-4"></i>
+            <h2 class="text-2xl font-bold mb-2">上传文档解析</h2>
+            <p class="text-gray-500">支持 PDF / Word(docx) / TXT 文本文件，云端高速解析</p >
         </div>
-    </footer>
 
-    <!-- 主要JavaScript -->
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            // 页面导航
-            const getStartedBtn = document.getElementById('get-started-btn');
-            const welcomeSection = document.getElementById('welcome-section');
-            const uploadSection = document.getElementById('upload-section');
-            const resultSection = document.getElementById('result-section');
-            const newAnalysisBtn = document.getElementById('new-analysis-btn');
-            
-            getStartedBtn.addEventListener('click', function() {
-                welcomeSection.classList.add('hidden');
-                uploadSection.classList.remove('hidden');
-                window.scrollTo({ top: 0, behavior: 'smooth' });
-            });
-            
-            newAnalysisBtn.addEventListener('click', function() {
-                resultSection.classList.add('hidden');
-                uploadSection.classList.remove('hidden');
-                window.scrollTo({ top: 0, behavior: 'smooth' });
-            });
-            
-            // 文档上传功能
-            const dropArea = document.getElementById('drop-area');
-            const fileInput = document.getElementById('file-input');
-            const uploadProgress = document.getElementById('upload-progress');
-            const fileName = document.getElementById('file-name');
-            const uploadPercentage = document.getElementById('upload-percentage');
-            const progressBar = document.getElementById('progress-bar');
-            const resultTitle = document.getElementById('result-title');
-            const documentName = document.getElementById('document-name');
-            const documentSize = document.getElementById('document-size');
-            const documentType = document.getElementById('document-type');
-            const documentContent = document.getElementById('document-content');
-            const parseStatus = document.getElementById('parse-status');
-            const statusMessage = document.getElementById('status-message');
-            
-            // 拖放功能
-            ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
-                dropArea.addEventListener(eventName, preventDefaults, false);
-            });
-            
-            function preventDefaults(e) {
-                e.preventDefault();
-                e.stopPropagation();
-            }
-            
-            ['dragenter', 'dragover'].forEach(eventName => {
-                dropArea.addEventListener(eventName, highlight, false);
-            });
-            
-            ['dragleave', 'drop'].forEach(eventName => {
-                dropArea.addEventListener(eventName, unhighlight, false);
-            });
-            
-            function highlight() {
-                dropArea.classList.add('border-dashed-blue-hover');
-                dropArea.classList.add('bg-blue-50');
-            }
-            
-            function unhighlight() {
-                dropArea.classList.remove('border-dashed-blue-hover');
-                dropArea.classList.remove('bg-blue-50');
-            }
-            
-            dropArea.addEventListener('drop', handleDrop, false);
-            
-            function handleDrop(e) {
-                const dt = e.dataTransfer;
-                const files = dt.files;
-                
-                if (files.length > 0) {
-                    handleFiles(files[0]);
-                }
-            }
-            
-            // 文件选择功能
-            dropArea.addEventListener('click', function() {
-                fileInput.click();
-            });
-            
-            fileInput.addEventListener('change', function() {
-                if (this.files.length > 0) {
-                    handleFiles(this.files[0]);
-                }
-            });
-            
-            // 处理上传的文件
-            function handleFiles(file) {
-                // 显示上传进度
-                fileName.textContent = file.name;
-                uploadProgress.classList.remove('hidden');
-                
-                // 模拟上传进度
-                let progress = 0;
-                const interval = setInterval(() => {
-                    progress += 5;
-                    uploadPercentage.textContent = `${progress}%`;
-                    progressBar.style.width = `${progress}%`;
-                    
-                    if (progress >= 100) {
-                        clearInterval(interval);
-                        setTimeout(() => {
-                            // 解析文件
-                            parseFile(file);
-                        }, 500);
-                    }
-                }, 100);
-            }
-            
-            // 解析文件
-            function parseFile(file) {
-                // 显示解析状态
-                uploadSection.classList.add('hidden');
-                resultSection.classList.remove('hidden');
-                parseStatus.classList.remove('hidden');
-                statusMessage.textContent = '正在解析文档...';
-                
-                // 更新文档信息
-                documentName.textContent = file.name;
-                documentSize.textContent = formatFileSize(file.size);
-                documentType.textContent = getFileExtension(file.name).toUpperCase();
-                resultTitle.textContent = file.name;
-                
-                // 根据文件类型选择解析方法
-                const extension = getFileExtension(file.name).toLowerCase();
-                
-                if (extension === 'txt') {
-                    parseTextFile(file);
-                } else if (extension === 'pdf') {
-                    parsePdfFile(file);
-                } else if (extension === 'docx') {
-                    parseDocxFile(file);
-                } else {
-                    statusMessage.textContent = '不支持的文件类型';
-                    documentContent.textContent = '请上传PDF、Word或TXT格式的文件。';
-                    parseStatus.classList.add('hidden');
-                }
-            }
-            
-            // 解析文本文件
-            function parseTextFile(file) {
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    documentContent.textContent = e.target.result;
-                    parseStatus.classList.add('hidden');
-                };
-                reader.onerror = function() {
-                    statusMessage.textContent = '解析文件时出错';
-                    documentContent.textContent = '无法解析文件内容。';
-                    parseStatus.classList.add('hidden');
-                };
-                reader.readAsText(file);
-            }
-            
-            // 解析PDF文件
-            function parsePdfFile(file) {
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    const arrayBuffer = e.target.result;
-                    
-                    // 设置解析超时
-                    const timeoutId = setTimeout(function() {
-                        statusMessage.textContent = '解析PDF文件超时';
-                        documentContent.textContent = 'PDF文件解析时间过长，请尝试上传较小的文件。';
-                        parseStatus.classList.add('hidden');
-                    }, 30000); // 30秒超时
-                    
-                    pdfjsLib.getDocument({ data: arrayBuffer }).promise.then(function(pdf) {
-                        let textContent = '';
-                        let pageCount = pdf.numPages;
-                        let processedPages = 0;
-                        
-                        // 限制最大页数，防止大型PDF文件导致浏览器卡死
-                        const maxPages = 50;
-                        if (pageCount > maxPages) {
-                            pageCount = maxPages;
-                            statusMessage.textContent = `正在解析文档... (仅解析前${maxPages}页)`;
-                        }
-                        
-                        for (let i = 1; i <= pageCount; i++) {
-                            pdf.getPage(i).then(function(page) {
-                                return page.getTextContent();
-                            }).then(function(content) {
-                                content.items.forEach(function(item) {
-                                    textContent += item.str + ' ';
-                                });
-                                processedPages++;
-                                
-                                // 更新进度
-                                const progress = Math.round((processedPages / pageCount) * 100);
-                                statusMessage.textContent = `正在解析文档... ${progress}%`;
-                                
-                                if (processedPages === pageCount) {
-                                    clearTimeout(timeoutId); // 清除超时
-                                    documentContent.textContent = textContent;
-                                    parseStatus.classList.add('hidden');
-                                }
-                            }).catch(function(error) {
-                                console.error('PDF页面解析错误:', error);
-                                processedPages++;
-                                if (processedPages === pageCount) {
-                                    clearTimeout(timeoutId); // 清除超时
-                                    documentContent.textContent = textContent;
-                                    parseStatus.classList.add('hidden');
-                                }
-                            });
-                        }
-                    }).catch(function(error) {
-                        clearTimeout(timeoutId); // 清除超时
-                        console.error('PDF解析错误:', error);
-                        statusMessage.textContent = '解析PDF文件时出错';
-                        documentContent.textContent = '无法解析PDF文件内容。';
-                        parseStatus.classList.add('hidden');
-                    });
-                };
-                reader.onerror = function() {
-                    statusMessage.textContent = '读取PDF文件时出错';
-                    documentContent.textContent = '无法读取PDF文件。';
-                    parseStatus.classList.add('hidden');
-                };
-                reader.readAsArrayBuffer(file);
-            }
-            
-            // 解析Word文档
-            function parseDocxFile(file) {
-                const reader = new FileReader();
-                
-                // 设置解析超时
-                const timeoutId = setTimeout(function() {
-                    statusMessage.textContent = '解析Word文件超时';
-                    documentContent.textContent = 'Word文件解析时间过长，请尝试上传较小的文件。';
-                    parseStatus.classList.add('hidden');
-                }, 10000); // 10秒超时
-                
-                reader.onload = function(e) {
-                    const arrayBuffer = e.target.result;
-                    
-                    // 限制文件大小，防止大型文件导致浏览器卡死
-                    if (file.size > 10 * 1024 * 1024) { // 10MB
-                        clearTimeout(timeoutId);
-                        statusMessage.textContent = '文件过大';
-                        documentContent.textContent = 'Word文件大小超过10MB，请尝试上传较小的文件。';
-                        parseStatus.classList.add('hidden');
-                        return;
-                    }
-                    
-                    mammoth.extractRawText({ arrayBuffer: arrayBuffer })
-                        .then(function(result) {
-                            clearTimeout(timeoutId);
-                            documentContent.textContent = result.value;
-                            parseStatus.classList.add('hidden');
-                        })
-                        .catch(function(error) {
-                            clearTimeout(timeoutId);
-                            console.error('Word解析错误:', error);
-                            statusMessage.textContent = '解析Word文件时出错';
-                            documentContent.textContent = '无法解析Word文件内容。';
-                            parseStatus.classList.add('hidden');
-                        });
-                };
-                reader.onerror = function() {
-                    clearTimeout(timeoutId);
-                    statusMessage.textContent = '读取Word文件时出错';
-                    documentContent.textContent = '无法读取Word文件。';
-                    parseStatus.classList.add('hidden');
-                };
-                reader.readAsArrayBuffer(file);
-            }
-            
-            // 辅助函数：获取文件扩展名
-            function getFileExtension(filename) {
-                return filename.split('.').pop();
-            }
-            
-            // 辅助函数：格式化文件大小
-            function formatFileSize(bytes) {
-                if (bytes < 1024) {
-                    return bytes + ' B';
-                } else if (bytes < 1048576) {
-                    return (bytes / 1024).toFixed(2) + ' KB';
-                } else {
-                    return (bytes / 1048576).toFixed(2) + ' MB';
-                }
-            }
+        <div class="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center hover:border-primary transition-colors cursor-pointer" id="dropArea">
+            <input type="file" id="fileInput" accept=".pdf,.docx,.txt" class="hidden">
+            <button id="uploadBtn" class="bg-primary hover:bg-primary/90 text-white px-6 py-3 rounded-lg font-medium transition-all shadow-md hover:shadow-lg">
+                <i class="fa fa-plus mr-2"></i>选择文件上传
+            </button>
+            <p class="mt-4 text-gray-400">或直接拖拽文件到此处上传</p >
+        </div>
+    </div>
+
+    <!-- 加载状态 -->
+    <div id="loadingBox" class="hidden text-center py-12">
+        <div class="inline-block animate-spin rounded-full h-12 w-12 border-4 border-primary border-t-transparent"></div>
+        <p class="mt-4 text-primary font-medium">正在云端解析文档，请稍候...</p >
+    </div>
+
+    <!-- 解析结果区域 -->
+    <div id="resultBox" class="hidden bg-white rounded-xl card-shadow p-6 mt-8">
+        <div class="flex justify-between items-center mb-4">
+            <h3 class="text-lg font-bold"><i class="fa fa-file-text-o mr-2 text-primary"></i>解析正文内容</h3>
+            <button id="copyBtn" class="bg-gray-100 hover:bg-gray-200 px-4 py-2 rounded text-sm transition-colors">
+                <i class="fa fa-copy mr-1"></i>复制全文
+            </button>
+        </div>
+        <div id="resultText" class="bg-gray-50 rounded-lg p-6 max-h-[600px] overflow-y-auto whitespace-pre-line leading-relaxed"></div>
+    </div>
+</main>
+
+<footer class="mt-12 py-6 text-center text-gray-400 text-sm">
+    <p>DocReader 文档在线阅读器 · 云端后端解析服务</p >
+</footer>
+
+<script>
+// ✅ 这里已经帮你改成你的最新后端地址！不用你改了！
+const apiUrl = "https://doc-reader-backend-sbcj.vercel.app/api/parse";
+
+const uploadBtn = document.getElementById('uploadBtn');
+const fileInput = document.getElementById('fileInput');
+const dropArea = document.getElementById('dropArea');
+const loadingBox = document.getElementById('loadingBox');
+const resultBox = document.getElementById('resultBox');
+const resultText = document.getElementById('resultText');
+const copyBtn = document.getElementById('copyBtn');
+
+// 点击上传按钮
+uploadBtn.addEventListener('click', () => fileInput.click());
+
+// 文件选择
+fileInput.addEventListener('change', handleFileSelect);
+
+// 拖拽上传
+['dragenter','dragover','dragleave','drop'].forEach(ev=>{
+    dropArea.addEventListener(ev,e=>e.preventDefault());
+});
+['dragenter','dragover'].forEach(ev=>{
+    dropArea.addEventListener(ev,()=>dropArea.classList.add('border-primary'));
+});
+['dragleave','drop'].forEach(ev=>{
+    dropArea.addEventListener(ev,()=>dropArea.classList.remove('border-primary'));
+});
+dropArea.addEventListener('drop',e=>{
+    const file = e.dataTransfer.files[0];
+    if(file) handleFile(file);
+});
+
+// 处理文件上传解析
+async function handleFileSelect(e){
+    const file = e.target.files[0];
+    if(file) handleFile(file);
+}
+
+async function handleFile(file){
+    const type = file.name.split('.').pop().toLowerCase();
+    if(!['pdf','docx','txt'].includes(type)){
+        alert('仅支持 PDF / DOCX / TXT 文件！');
+        return;
+    }
+
+    loadingBox.classList.remove('hidden');
+    resultBox.classList.add('hidden');
+
+    try{
+        // 读取文件转base64
+        const buffer = await file.arrayBuffer();
+        const base64 = btoa(String.fromCharCode(...new Uint8Array(buffer)));
+        
+        // 调用你的后端接口
+        const res = await fetch(apiUrl,{
+            method:'POST',
+            headers:{'Content-Type':'application/json'},
+            body:JSON.stringify({type,file:{data:base64}})
         });
-    </script>
+
+        const data = await res.json();
+        if(!res.ok) throw new Error(data.error || '解析失败');
+
+        // 显示结果
+        resultText.innerText = data.text;
+        resultBox.classList.remove('hidden');
+    }catch(err){
+        alert('文档解析出错：'+err.message);
+        console.error(err);
+    }finally{
+        loadingBox.classList.add('hidden');
+    }
+}
+
+// 复制全文
+copyBtn.addEventListener('click',()=>{
+    navigator.clipboard.writeText(resultText.innerText);
+    alert('全文已复制！');
+});
+</script>
 </body>
-</html> else if (bytes < 1048576) {
-                    return (bytes / 1024).toFixed(2) + ' KB';
-                } else {
-                    return (bytes / 1048576).toFixed(
+</html>
