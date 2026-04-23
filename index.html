@@ -358,10 +358,24 @@
                 reader.onload = function(e) {
                     const arrayBuffer = e.target.result;
                     
+                    // 设置解析超时
+                    const timeoutId = setTimeout(function() {
+                        statusMessage.textContent = '解析PDF文件超时';
+                        documentContent.textContent = 'PDF文件解析时间过长，请尝试上传较小的文件。';
+                        parseStatus.classList.add('hidden');
+                    }, 30000); // 30秒超时
+                    
                     pdfjsLib.getDocument({ data: arrayBuffer }).promise.then(function(pdf) {
                         let textContent = '';
                         let pageCount = pdf.numPages;
                         let processedPages = 0;
+                        
+                        // 限制最大页数，防止大型PDF文件导致浏览器卡死
+                        const maxPages = 50;
+                        if (pageCount > maxPages) {
+                            pageCount = maxPages;
+                            statusMessage.textContent = `正在解析文档... (仅解析前${maxPages}页)`;
+                        }
                         
                         for (let i = 1; i <= pageCount; i++) {
                             pdf.getPage(i).then(function(page) {
@@ -377,12 +391,22 @@
                                 statusMessage.textContent = `正在解析文档... ${progress}%`;
                                 
                                 if (processedPages === pageCount) {
+                                    clearTimeout(timeoutId); // 清除超时
+                                    documentContent.textContent = textContent;
+                                    parseStatus.classList.add('hidden');
+                                }
+                            }).catch(function(error) {
+                                console.error('PDF页面解析错误:', error);
+                                processedPages++;
+                                if (processedPages === pageCount) {
+                                    clearTimeout(timeoutId); // 清除超时
                                     documentContent.textContent = textContent;
                                     parseStatus.classList.add('hidden');
                                 }
                             });
                         }
                     }).catch(function(error) {
+                        clearTimeout(timeoutId); // 清除超时
                         console.error('PDF解析错误:', error);
                         statusMessage.textContent = '解析PDF文件时出错';
                         documentContent.textContent = '无法解析PDF文件内容。';
@@ -400,15 +424,34 @@
             // 解析Word文档
             function parseDocxFile(file) {
                 const reader = new FileReader();
+                
+                // 设置解析超时
+                const timeoutId = setTimeout(function() {
+                    statusMessage.textContent = '解析Word文件超时';
+                    documentContent.textContent = 'Word文件解析时间过长，请尝试上传较小的文件。';
+                    parseStatus.classList.add('hidden');
+                }, 10000); // 10秒超时
+                
                 reader.onload = function(e) {
                     const arrayBuffer = e.target.result;
                     
+                    // 限制文件大小，防止大型文件导致浏览器卡死
+                    if (file.size > 10 * 1024 * 1024) { // 10MB
+                        clearTimeout(timeoutId);
+                        statusMessage.textContent = '文件过大';
+                        documentContent.textContent = 'Word文件大小超过10MB，请尝试上传较小的文件。';
+                        parseStatus.classList.add('hidden');
+                        return;
+                    }
+                    
                     mammoth.extractRawText({ arrayBuffer: arrayBuffer })
                         .then(function(result) {
+                            clearTimeout(timeoutId);
                             documentContent.textContent = result.value;
                             parseStatus.classList.add('hidden');
                         })
                         .catch(function(error) {
+                            clearTimeout(timeoutId);
                             console.error('Word解析错误:', error);
                             statusMessage.textContent = '解析Word文件时出错';
                             documentContent.textContent = '无法解析Word文件内容。';
@@ -416,6 +459,7 @@
                         });
                 };
                 reader.onerror = function() {
+                    clearTimeout(timeoutId);
                     statusMessage.textContent = '读取Word文件时出错';
                     documentContent.textContent = '无法读取Word文件。';
                     parseStatus.classList.add('hidden');
