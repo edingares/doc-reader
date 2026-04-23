@@ -364,7 +364,7 @@
                         statusMessage.textContent = '解析PDF文件超时';
                         documentContent.textContent = 'PDF文件解析时间过长，请尝试上传较小的文件。';
                         parseStatus.classList.add('hidden');
-                    }, 30000); // 30秒超时
+                    }, 60000); // 60秒超时
                     
                     pdfjsLib.getDocument({ data: arrayBuffer }).promise.then(function(pdf) {
                         let textContent = '';
@@ -431,16 +431,16 @@
                     statusMessage.textContent = '解析Word文件超时';
                     documentContent.textContent = 'Word文件解析时间过长，请尝试上传较小的文件。';
                     parseStatus.classList.add('hidden');
-                }, 10000); // 10秒超时
+                }, 30000); // 30秒超时
                 
                 reader.onload = function(e) {
                     const arrayBuffer = e.target.result;
                     
                     // 限制文件大小，防止大型文件导致浏览器卡死
-                    if (file.size > 10 * 1024 * 1024) { // 10MB
+                    if (file.size > 50 * 1024 * 1024) { // 50MB
                         clearTimeout(timeoutId);
                         statusMessage.textContent = '文件过大';
-                        documentContent.textContent = 'Word文件大小超过10MB，请尝试上传较小的文件。';
+                        documentContent.textContent = 'Word文件大小超过50MB，请尝试上传较小的文件。';
                         parseStatus.classList.add('hidden');
                         return;
                     }
