@@ -8,8 +8,8 @@
 <script src="https://cdn.tailwindcss.com"></script>
 <!-- Font Awesome -->
 <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
-<!-- PDF.js -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js"></script>
+<!-- ✅ 修复pdf.js 404失效！换成稳定可用地址 -->
+<script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.4.120/build/pdf.min.js"></script>
 <!-- Mammoth.js for Word documents -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
 
@@ -87,7 +87,7 @@ tailwind.config = {
 </footer>
 
 <script>
-// ✅ 这里已经帮你改成你的最新后端地址！不用你改了！
+// ✅ 已经绑定你自己的后端接口地址，不用修改
 const apiUrl = "https://doc-reader-backend-sbcj.vercel.app/api/parse";
 
 const uploadBtn = document.getElementById('uploadBtn');
